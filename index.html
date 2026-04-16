@@ -8,27 +8,24 @@
         body { font-family: sans-serif; padding: 15px; background: #f4f7f6; margin: 0; }
         .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* Botão Principal de Busca */
         .nav-search { display: flex; justify-content: flex-end; margin-bottom: 15px; }
         .btn-abrir-busca { background: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-        /* Tela de Busca (Inicia escondida) */
         #tela-busca { display: none; text-align: center; }
         .search-input-wrapper { margin-top: 20px; }
-        #inputBusca { width: 100%; padding: 15px; border: 2px solid #1a73e8; border-radius: 10px; font-size: 18px; outline: none; }
+        #inputBusca { width: 100%; padding: 15px; border: 2px solid #1a73e8; border-radius: 10px; font-size: 18px; outline: none; box-sizing: border-box; }
         #loading { color: #1a73e8; font-weight: bold; margin: 10px 0; display: none; }
-        .resultados-lista { margin-top: 20px; text-align: left; }
-        .card-resultado { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .resultados-lista { margin-top: 20px; text-align: left; max-height: 300px; overflow-y: auto; }
+        .card-resultado { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; }
         .card-resultado:active { background: #e8f0fe; }
 
-        /* Tela de Formulário */
         #tela-formulario { display: block; }
         .status-destaque { display: none; background: #fff3cd; padding: 15px; border-radius: 10px; border: 2px solid #ffeeba; margin-bottom: 20px; }
         label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #555; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         
         .btn-enviar { background: #28a745; color: white; border: none; width: 100%; padding: 18px; margin-top: 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        .btn-voltar { background: #6c757d; color: white; border: none; padding: 10px; margin-top: 20px; border-radius: 8px; cursor: pointer; width: 100%; }
+        .btn-voltar { background: #6c757d; color: white; border: none; padding: 15px; margin-top: 20px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; }
         #msg-final { text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
@@ -84,17 +81,17 @@
     </div>
 
     <div id="tela-busca">
-        <h2>Buscar no Histórico</h2>
-        <p style="color: #666;">Digite o nome ou telefone para localizar</p>
+        <h2>Localizar no Histórico</h2>
+        <p style="color: #666;">Digite nome ou telefone (sem acentos)</p>
         
         <div class="search-input-wrapper">
-            <input type="text" id="inputBusca" placeholder="Comece a digitar..." oninput="debounceBusca()">
-            <div id="loading">Buscando na planilha...</div>
+            <input type="text" id="inputBusca" placeholder="Pesquisar..." oninput="debounceBusca()">
+            <div id="loading">Consultando planilha...</div>
         </div>
 
         <div id="listaResultados" class="resultados-lista"></div>
         
-        <button class="btn-voltar" onclick="mostrarForm()">⬅ Voltar ao Formulário</button>
+        <button class="btn-voltar" onclick="mostrarForm()">⬅ Cancelar e Voltar</button>
     </div>
 
 </div>
@@ -110,7 +107,6 @@
         document.getElementById('statusNormal').value = v;
     }
 
-    // Alternância de Telas
     function mostrarBusca() {
         document.getElementById('tela-formulario').style.display = 'none';
         document.getElementById('tela-busca').style.display = 'block';
@@ -120,9 +116,10 @@
     function mostrarForm() {
         document.getElementById('tela-busca').style.display = 'none';
         document.getElementById('tela-formulario').style.display = 'block';
+        document.getElementById('inputBusca').value = "";
+        document.getElementById('listaResultados').innerHTML = "";
     }
 
-    // Lógica de Autocomplete (Debounce)
     function debounceBusca() {
         clearTimeout(tempoBusca);
         const t = document.getElementById('inputBusca').value;
@@ -149,7 +146,7 @@
         const lista = document.getElementById('listaResultados');
         lista.innerHTML = "";
         if (dados.length === 0) {
-            lista.innerHTML = "<p style='text-align:center'>Nenhuma demanda encontrada.</p>";
+            lista.innerHTML = "<p style='text-align:center; color: #999;'>Nenhuma demanda encontrada.</p>";
             return;
         }
         dados.forEach(d => {
@@ -169,8 +166,7 @@
         document.getElementById('descricao').value = d.descricao;
         sincronizarStatus(d.status);
 
-        // Ajuste visual
-        document.getElementById('titulo-form').innerText = "Editando Demanda";
+        document.getElementById('titulo-form').innerText = "Editando Registro";
         document.getElementById('bloco-status-topo').style.display = "block";
         document.getElementById('bloco-status-normal').style.display = "none";
         document.getElementById('btnAcao').innerText = "ATUALIZAR DEMANDA";
@@ -178,8 +174,6 @@
         document.getElementById('btnAcao').style.color = "#000";
 
         mostrarForm();
-        document.getElementById('inputBusca').value = "";
-        document.getElementById('listaResultados').innerHTML = "";
     }
 
     function resetarTudo() {
@@ -198,7 +192,7 @@
         const btn = document.getElementById('btnAcao');
         const msg = document.getElementById('msg-final');
         btn.disabled = true;
-        msg.innerText = "Processando...";
+        msg.innerText = "Gravando...";
 
         const params = new URLSearchParams();
         params.append('linhaId', document.getElementById('linhaId').value);
@@ -211,8 +205,8 @@
         try {
             await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
             msg.style.color = "green";
-            msg.innerText = "✅ Salvo com sucesso!";
-            setTimeout(() => { msg.innerText = ""; resetarTudo(); }, 2500);
+            msg.innerText = "✅ Sucesso!";
+            setTimeout(() => { msg.innerText = ""; resetarTudo(); }, 2000);
         } catch (e) {
             msg.style.color = "red";
             msg.innerText = "❌ Erro ao salvar.";
