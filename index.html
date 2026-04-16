@@ -148,9 +148,8 @@
         document.getElementById('descricao').value = d.descricao;
         sincronizarStatus(d.status);
 
-        // Lógica para carregar o assunto
-        const listaAssuntos = ["Saúde", "Educação"];
-        if (listaAssuntos.includes(d.assunto)) {
+        const listaFixa = ["Saúde", "Educação"];
+        if (listaFixa.includes(d.assunto)) {
             document.getElementById('assunto').value = d.assunto;
             verificarOutros(d.assunto);
         } else {
@@ -184,8 +183,13 @@
     async function enviar() {
         const btn = document.getElementById('btnAcao');
         const msg = document.getElementById('msg-final');
+        const textoOriginal = btn.innerText;
+
+        // Feedback Visual
         btn.disabled = true;
-        msg.innerText = "Gravando...";
+        btn.innerText = "⏳ GRAVANDO...";
+        msg.style.color = "#1a73e8";
+        msg.innerText = "Enviando dados para a planilha...";
 
         const params = new URLSearchParams();
         params.append('linhaId', document.getElementById('linhaId').value);
@@ -197,11 +201,27 @@
         params.append('status', statusGlobal);
 
         try {
-            await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
-            msg.style.color = "green"; msg.innerText = "✅ Sucesso!";
-            setTimeout(() => { msg.innerText = ""; resetarTudo(); }, 2000);
+            // Usa o modo 'no-cors' para evitar erros de bloqueio de segurança do navegador
+            await fetch(WEBAPP_URL, { 
+                method: 'POST', 
+                body: params, 
+                mode: 'no-cors' 
+            });
+            
+            msg.style.color = "green";
+            msg.innerText = "✅ Atualizado com sucesso!";
+            
+            // Aguarda 2 segundos para o usuário ler a mensagem e reseta
+            setTimeout(() => { 
+                msg.innerText = ""; 
+                resetarTudo(); 
+            }, 2000);
+
         } catch (e) {
-            msg.style.color = "red"; msg.innerText = "❌ Erro ao salvar."; btn.disabled = false;
+            msg.style.color = "red";
+            msg.innerText = "❌ Erro na conexão. Tente novamente.";
+            btn.disabled = false;
+            btn.innerText = textoOriginal;
         }
     }
 </script>
