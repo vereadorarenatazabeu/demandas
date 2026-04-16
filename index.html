@@ -5,46 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Demandas</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f8f9fa; margin: 0; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1a73e8; }
+        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; margin: 0; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
         
-        .search-box { display: flex; gap: 8px; margin-bottom: 15px; }
-        .btn-lupa { background: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        /* Cabeçalho e Busca */
+        .header-search { margin-bottom: 20px; }
+        .search-row { display: flex; gap: 8px; align-items: center; }
+        .search-row input { flex: 1; padding: 12px; border: 2px solid #1a73e8; border-radius: 8px; font-size: 16px; }
+        #loading-indicator { font-size: 12px; color: #1a73e8; font-weight: bold; display: none; margin-top: 5px; }
 
-        /* Lista de resultados da busca */
-        #listaResultados { display: none; background: #eef2f7; padding: 10px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d1d9e6; }
-        .item-busca { padding: 10px; border-bottom: 1px solid #ccc; cursor: pointer; font-size: 14px; }
-        .item-busca:last-child { border-bottom: none; }
-        .item-busca:hover { background: #dce4f0; }
+        /* Tela de Resultados (Sobreposição) */
+        #search-overlay { display: none; background: #fff; position: absolute; top: 80px; left: 0; width: 100%; height: auto; min-height: 200px; z-index: 10; border-top: 2px solid #eee; padding: 15px; box-sizing: border-box; }
+        .item-busca { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .item-busca:active { background: #e8f0fe; }
+        .item-busca strong { display: block; color: #1a73e8; }
+        .item-busca span { font-size: 13px; color: #666; }
 
-        .status-destaque { background: #fff3cd; padding: 15px; border-radius: 8px; border: 2px solid #ffeeba; margin-bottom: 15px; }
-        label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; color: #555; }
+        /* Formulário */
+        .status-destaque { display: none; background: #fff3cd; padding: 15px; border-radius: 8px; border: 2px solid #ffeeba; margin-bottom: 20px; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         
-        .btn-submit { background: #28a745; color: white; border: none; width: 100%; padding: 16px; margin-top: 20px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .btn-submit { background: #28a745; color: white; border: none; width: 100%; padding: 16px; margin-top: 25px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
         #status-msg { text-align: center; margin-top: 15px; font-weight: bold; }
-        .modo-edicao { border-left: 5px solid #ffc107; padding-left: 10px; }
+        .btn-cancel { display: none; width: 100%; background: #6c757d; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Demandas</h2>
-
-    <div class="search-box">
-        <input type="text" id="busca" placeholder="Localizar demanda (Nome/Tel)...">
-        <button type="button" class="btn-lupa" onclick="pesquisar()">🔍</button>
+    <div class="header-search">
+        <div class="search-row">
+            <input type="text" id="busca" placeholder="🔍 Buscar demanda..." oninput="debounceBusca()">
+        </div>
+        <div id="loading-indicator">Buscando...</div>
     </div>
 
-    <div id="listaResultados"></div>
+    <div id="search-overlay"></div>
 
     <form id="formDemanda">
         <input type="hidden" id="linhaId">
 
-        <div class="status-destaque">
-            <label style="color:#856404; margin-top:0;">STATUS DA DEMANDA:</label>
-            <select id="status" style="border: 2px solid #856404; font-weight: bold;">
+        <div id="divStatusTopo" class="status-destaque">
+            <label style="color:#856404; margin-top:0;">ALTERAR STATUS:</label>
+            <select id="statusTopo" onchange="sincronizarStatus(this.value)">
                 <option value="Pendente">🟡 Pendente</option>
                 <option value="Resolvido">🟢 Resolvido</option>
             </select>
@@ -69,46 +73,75 @@
         <label>Descrição:</label>
         <textarea id="descricao" rows="3"></textarea>
 
-        <button type="button" class="btn-submit" id="btnSalvar" onclick="enviar()">SALVAR ALTERAÇÕES</button>
+        <div id="divStatusNormal">
+            <label>Status:</label>
+            <select id="statusNormal" onchange="sincronizarStatus(this.value)">
+                <option value="Pendente">Pendente</option>
+                <option value="Resolvido">Resolvido</option>
+            </select>
+        </div>
+
+        <button type="button" class="btn-submit" id="btnSalvar" onclick="enviar()">SALVAR NOVA DEMANDA</button>
+        <button type="button" class="btn-cancel" id="btnCancel" onclick="limparForm()">Cancelar Edição</button>
         <div id="status-msg"></div>
-        <button type="button" id="btnLimpar" onclick="limparForm()" style="width:100%; background:none; border:none; color:grey; margin-top:10px; cursor:pointer;">Limpar / Nova Demanda</button>
     </form>
 </div>
 
 <script>
     const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzVRhKIE_cHfmUL3Niy3cqZNM4_c-QX-AmsHww5grOShDNJqf3tMwlcwECCcE-Mmgynvg/exec';
+    let timeoutBusca = null;
+    let valorStatusGlobal = "Pendente";
 
-    function pesquisar() {
+    function sincronizarStatus(val) {
+        valorStatusGlobal = val;
+        document.getElementById('statusTopo').value = val;
+        document.getElementById('statusNormal').value = val;
+    }
+
+    function debounceBusca() {
+        clearTimeout(timeoutBusca);
         const termo = document.getElementById('busca').value;
-        if (!termo) return;
-        const msg = document.getElementById('status-msg');
-        msg.innerText = "Buscando...";
+        if (termo.length < 3) {
+            fecharBusca();
+            return;
+        }
+        document.getElementById('loading-indicator').style.display = "block";
+        timeoutBusca = setTimeout(executarBusca, 600);
+    }
 
+    function executarBusca() {
+        const termo = document.getElementById('busca').value;
         const script = document.createElement('script');
         script.src = `${WEBAPP_URL}?busca=${encodeURIComponent(termo)}&callback=retornoPesquisa`;
         document.body.appendChild(script);
-        script.onload = () => script.remove();
+        script.onload = () => {
+            script.remove();
+            document.getElementById('loading-indicator').style.display = "none";
+        };
     }
 
     function retornoPesquisa(resultados) {
-        const div = document.getElementById('listaResultados');
-        const msg = document.getElementById('status-msg');
-        div.innerHTML = "";
+        const overlay = document.getElementById('search-overlay');
+        overlay.innerHTML = "";
         
         if (resultados.length > 0) {
-            div.style.display = "block";
-            msg.innerText = resultados.length + " demanda(s) encontrada(s):";
+            overlay.style.display = "block";
+            document.getElementById('formDemanda').style.opacity = "0.2"; // Esconde o fundo
+            
             resultados.forEach(res => {
                 const item = document.createElement('div');
                 item.className = 'item-busca';
-                item.innerHTML = `<strong>[${res.status}]</strong> ${res.nome} - ${res.assunto} (${res.data})`;
+                item.innerHTML = `<strong>${res.nome}</strong><span>${res.assunto} - ${res.data} (${res.status})</span>`;
                 item.onclick = () => carregarDemanda(res);
-                div.appendChild(item);
+                overlay.appendChild(item);
             });
-        } else {
-            div.style.display = "none";
-            msg.innerText = "Nada encontrado.";
         }
+    }
+
+    function fecharBusca() {
+        document.getElementById('search-overlay').style.display = "none";
+        document.getElementById('formDemanda').style.opacity = "1";
+        document.getElementById('loading-indicator').style.display = "none";
     }
 
     function carregarDemanda(res) {
@@ -117,28 +150,38 @@
         document.getElementById('telefone').value = res.telefone;
         document.getElementById('assunto').value = res.assunto;
         document.getElementById('descricao').value = res.descricao;
-        document.getElementById('status').value = res.status;
+        sincronizarStatus(res.status);
         
-        document.getElementById('listaResultados').style.display = "none";
-        document.getElementById('formDemanda').className = "modo-edicao";
+        // Ajuste visual para MODO EDIÇÃO
+        document.getElementById('divStatusTopo').style.display = "block";
+        document.getElementById('divStatusNormal').style.display = "none";
+        document.getElementById('btnCancel').style.display = "block";
         document.getElementById('btnSalvar').innerText = "ATUALIZAR DEMANDA";
-        document.getElementById('status-msg').innerText = "Editando demanda de " + res.nome;
-        window.scrollTo(0, document.getElementById('status').offsetTop - 50);
+        document.getElementById('btnSalvar').style.background = "#ffc107";
+        document.getElementById('btnSalvar').style.color = "#000";
+
+        fecharBusca();
+        document.getElementById('busca').value = "";
     }
 
     function limparForm() {
         document.getElementById('formDemanda').reset();
         document.getElementById('linhaId').value = "";
-        document.getElementById('formDemanda').className = "";
+        document.getElementById('divStatusTopo').style.display = "none";
+        document.getElementById('divStatusNormal').style.display = "block";
+        document.getElementById('btnCancel').style.display = "none";
         document.getElementById('btnSalvar').innerText = "SALVAR NOVA DEMANDA";
+        document.getElementById('btnSalvar').style.background = "#28a745";
+        document.getElementById('btnSalvar').style.color = "#fff";
         document.getElementById('status-msg').innerText = "";
+        sincronizarStatus("Pendente");
     }
 
     async function enviar() {
         const btn = document.getElementById('btnSalvar');
         const msg = document.getElementById('status-msg');
         btn.disabled = true;
-        msg.innerText = "Enviando...";
+        msg.innerText = "Gravando...";
 
         const params = new URLSearchParams();
         params.append('linhaId', document.getElementById('linhaId').value);
@@ -146,12 +189,12 @@
         params.append('telefone', document.getElementById('telefone').value);
         params.append('assunto', document.getElementById('assunto').value);
         params.append('descricao', document.getElementById('descricao').value);
-        params.append('status', document.getElementById('status').value);
+        params.append('status', valorStatusGlobal);
 
         try {
             await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
             msg.style.color = "green";
-            msg.innerText = "✅ Salvo com sucesso na planilha!";
+            msg.innerText = "✅ Operação realizada com sucesso!";
             setTimeout(limparForm, 2000);
         } catch (e) {
             msg.style.color = "red";
