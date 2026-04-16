@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Demandas</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f0f2f5; margin: 0; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; margin-top: 0; }
+        
+        label { display: block; margin-top: 15px; font-weight: 600; color: #444; font-size: 14px; }
+        input, select, textarea { 
+            width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccd0d5; 
+            border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fff;
+        }
+        
+        /* Estilo da Busca/Lupa */
+        .search-box { display: flex; gap: 8px; margin-bottom: 20px; background: #e8f0fe; padding: 10px; border-radius: 8px; }
+        .search-box input { margin-top: 0; border: 1px solid #1a73e8; }
+        .btn-lupa { background: #1a73e8; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+
+        /* Botão Enviar */
+        .btn-submit { 
+            background: #28a745; color: white; border: none; width: 100%; padding: 16px; 
+            margin-top: 25px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; 
+            transition: background 0.3s;
+        }
+        .btn-submit:active { background: #1e7e34; transform: scale(0.98); }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Checkbox de Atualização */
+        .update-sync { 
+            display: flex; align-items: center; gap: 10px; margin-top: 15px; 
+            padding: 10px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffeeba;
+        }
+        .update-sync input { width: auto; margin: 0; cursor: pointer; }
+        .update-sync span { font-size: 13px; color: #856404; }
+
+        #status-msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Nova Demanda</h2>
+
+    <div class="search-box">
+        <input type="text" id="busca" placeholder="Consultar Nome ou Tel...">
+        <button type="button" class="btn-lupa" onclick="pesquisar()">🔍</button>
+    </div>
+
+    <form id="formDemanda">
+        <label>Nome do Cidadão:</label>
+        <input type="text" id="nome" placeholder="Nome completo ou parcial">
+
+        <label>Telefone:</label>
+        <input type="text" id="telefone" placeholder="(00) 00000-0000">
+
+        <label>Assunto:</label>
+        <select id="assunto">
+            <option value="Zeladoria">Zeladoria (Poda, Buraco, Lixo)</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Educação">Educação</option>
+            <option value="Segurança">Segurança</option>
+            <option value="Indicação">Indicação Legislativa</option>
+            <option value="Outros">Outros</option>
+        </select>
+
+        <label>O que precisa ser feito?</label>
+        <textarea id="descricao" rows="4" placeholder="Detalhes da solicitação..."></textarea>
+
+        <label>Status Atual:</label>
+        <select id="status">
+            <option value="Pendente">Pendente</option>
+            <option value="Resolvido">Resolvido na Hora</option>
+        </select>
+
+        <div class="update-sync">
+            <input type="checkbox" id="atualizar">
+            <span>Atualizar nome na aba 'cadastros' se encontrado?</span>
+        </div>
+
+        <button type="button" class="btn-submit" id="btnSalvar" onclick="enviarDados()">SALVAR REGISTRO</button>
+        <div id="status-msg"></div>
+    </form>
+</div>
+
+<script>
+    // --- INSIRA ABAIXO A URL DO SEU NOVO SCRIPT ---
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzVRhKIE_cHfmUL3Niy3cqZNM4_c-QX-AmsHww5grOShDNJqf3tMwlcwECCcE-Mmgynvg/exec';
+
+    // Função de Busca usando JSONP para evitar erro de CORS
+    function pesquisar() {
+        const termo = document.getElementById('busca').value;
+        if (!termo) return;
+        
+        const msg = document.getElementById('status-msg');
+        msg.style.color = "#1a73e8";
+        msg.innerText = "Buscando no banco de dados...";
+
+        const script = document.createElement('script');
+        // Chama o doGet enviando o termo e pedindo o callback
+        script.src = `${WEBAPP_URL}?busca=${encodeURIComponent(termo)}&callback=retornoPesquisa`;
+        document.body.appendChild(script);
+        
+        // Remove o script após a execução para limpar o HTML
+        script.onload = () => script.remove();
+    }
+
+    // Função que recebe a resposta da busca
+    function retornoPesquisa(dados) {
+        const msg = document.getElementById('status-msg');
+        if (dados.encontrado) {
+            document.getElementById('nome').value = dados.nome;
+            document.getElementById('telefone').value = dados.telefone;
+            msg.style.color = "green";
+            msg.innerText = "✅ Cidadão localizado!";
+        } else {
+            msg.style.color = "orange";
+            msg.innerText = "⚠️ Não encontrado. Preencha manualmente.";
+        }
+    }
+
+    // Função para Enviar os Dados (doPost)
+    async function enviarDados() {
+        const btn = document.getElementById('btnSalvar');
+        const msg = document.getElementById('status-msg');
+        
+        btn.disabled = true;
+        msg.style.color = "#444";
+        msg.innerText = "Enviando para a planilha...";
+
+        const params = new URLSearchParams();
+        params.append('nome', document.getElementById('nome').value);
+        params.append('telefone', document.getElementById('telefone').value);
+        params.append('assunto', document.getElementById('assunto').value);
+        params.append('descricao', document.getElementById('descricao').value);
+        params.append('status', document.getElementById('status').value);
+        params.append('atualizarCadastro', document.getElementById('atualizar').checked);
+
+        try {
+            // mode: 'no-cors' permite o envio sem travar o navegador
+            await fetch(WEBAPP_URL, {
+                method: 'POST',
+                body: params,
+                mode: 'no-cors'
+            });
+            
+            msg.style.color = "green";
+            msg.innerText = "✅ Sucesso! Demanda registrada.";
+            document.getElementById('formDemanda').reset();
+            document.getElementById('busca').value = "";
+        } catch (e) {
+            msg.style.color = "red";
+            msg.innerText = "❌ Erro de conexão. Tente novamente.";
+        } finally {
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
