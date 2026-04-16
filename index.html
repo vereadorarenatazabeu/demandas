@@ -3,183 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Demandas</title>
+    <title>Gabinete - Demandas</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; margin: 0; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+        body { font-family: sans-serif; padding: 15px; background: #f4f7f6; margin: 0; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* Cabeçalho e Busca */
-        .header-search { margin-bottom: 20px; }
-        .search-row { display: flex; gap: 8px; align-items: center; }
-        .search-row input { flex: 1; padding: 12px; border: 2px solid #1a73e8; border-radius: 8px; font-size: 16px; }
-        #loading-indicator { font-size: 12px; color: #1a73e8; font-weight: bold; display: none; margin-top: 5px; }
+        /* Botão Principal de Busca */
+        .nav-search { display: flex; justify-content: flex-end; margin-bottom: 15px; }
+        .btn-abrir-busca { background: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-        /* Tela de Resultados (Sobreposição) */
-        #search-overlay { display: none; background: #fff; position: absolute; top: 80px; left: 0; width: 100%; height: auto; min-height: 200px; z-index: 10; border-top: 2px solid #eee; padding: 15px; box-sizing: border-box; }
-        .item-busca { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .item-busca:active { background: #e8f0fe; }
-        .item-busca strong { display: block; color: #1a73e8; }
-        .item-busca span { font-size: 13px; color: #666; }
+        /* Tela de Busca (Inicia escondida) */
+        #tela-busca { display: none; text-align: center; }
+        .search-input-wrapper { margin-top: 20px; }
+        #inputBusca { width: 100%; padding: 15px; border: 2px solid #1a73e8; border-radius: 10px; font-size: 18px; outline: none; }
+        #loading { color: #1a73e8; font-weight: bold; margin: 10px 0; display: none; }
+        .resultados-lista { margin-top: 20px; text-align: left; }
+        .card-resultado { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .card-resultado:active { background: #e8f0fe; }
 
-        /* Formulário */
-        .status-destaque { display: none; background: #fff3cd; padding: 15px; border-radius: 8px; border: 2px solid #ffeeba; margin-bottom: 20px; }
-        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
+        /* Tela de Formulário */
+        #tela-formulario { display: block; }
+        .status-destaque { display: none; background: #fff3cd; padding: 15px; border-radius: 10px; border: 2px solid #ffeeba; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #555; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         
-        .btn-submit { background: #28a745; color: white; border: none; width: 100%; padding: 16px; margin-top: 25px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        #status-msg { text-align: center; margin-top: 15px; font-weight: bold; }
-        .btn-cancel { display: none; width: 100%; background: #6c757d; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; cursor: pointer; }
+        .btn-enviar { background: #28a745; color: white; border: none; width: 100%; padding: 18px; margin-top: 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .btn-voltar { background: #6c757d; color: white; border: none; padding: 10px; margin-top: 20px; border-radius: 8px; cursor: pointer; width: 100%; }
+        #msg-final { text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-search">
-        <div class="search-row">
-            <input type="text" id="busca" placeholder="🔍 Buscar demanda..." oninput="debounceBusca()">
+    
+    <div id="tela-formulario">
+        <div class="nav-search">
+            <button class="btn-abrir-busca" onclick="mostrarBusca()">🔍 Localizar Demanda</button>
         </div>
-        <div id="loading-indicator">Buscando...</div>
+
+        <h2 id="titulo-form">Nova Demanda</h2>
+
+        <form id="meuForm">
+            <input type="hidden" id="linhaId">
+
+            <div id="bloco-status-topo" class="status-destaque">
+                <label style="color:#856404; margin-top:0;">ALTERAR STATUS:</label>
+                <select id="statusTopo" onchange="sincronizarStatus(this.value)">
+                    <option value="Pendente">🟡 Pendente</option>
+                    <option value="Resolvido">🟢 Resolvido</option>
+                </select>
+            </div>
+
+            <label>Nome do Cidadão:</label>
+            <input type="text" id="nome">
+
+            <label>Telefone:</label>
+            <input type="text" id="telefone">
+
+            <label>Assunto:</label>
+            <select id="assunto">
+                <option value="Saúde">Saúde</option>
+                <option value="Educação">Educação</option>
+                <option value="Outros">Outros</option>
+            </select>
+
+            <label>Descrição:</label>
+            <textarea id="descricao" rows="4"></textarea>
+
+            <div id="bloco-status-normal">
+                <label>Status:</label>
+                <select id="statusNormal" onchange="sincronizarStatus(this.value)">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Resolvido">Resolvido</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn-enviar" id="btnAcao" onclick="enviar()">SALVAR REGISTRO</button>
+            <div id="msg-final"></div>
+        </form>
     </div>
 
-    <div id="search-overlay"></div>
-
-    <form id="formDemanda">
-        <input type="hidden" id="linhaId">
-
-        <div id="divStatusTopo" class="status-destaque">
-            <label style="color:#856404; margin-top:0;">ALTERAR STATUS:</label>
-            <select id="statusTopo" onchange="sincronizarStatus(this.value)">
-                <option value="Pendente">🟡 Pendente</option>
-                <option value="Resolvido">🟢 Resolvido</option>
-            </select>
+    <div id="tela-busca">
+        <h2>Buscar no Histórico</h2>
+        <p style="color: #666;">Digite o nome ou telefone para localizar</p>
+        
+        <div class="search-input-wrapper">
+            <input type="text" id="inputBusca" placeholder="Comece a digitar..." oninput="debounceBusca()">
+            <div id="loading">Buscando na planilha...</div>
         </div>
 
-        <label>Nome do Cidadão:</label>
-        <input type="text" id="nome">
+        <div id="listaResultados" class="resultados-lista"></div>
+        
+        <button class="btn-voltar" onclick="mostrarForm()">⬅ Voltar ao Formulário</button>
+    </div>
 
-        <label>Telefone:</label>
-        <input type="text" id="telefone">
-
-        <label>Assunto:</label>
-        <select id="assunto">
-            <option value="Saúde">Saúde</option>
-            <option value="Educação">Educação</option>
-            <option value="Segurança">Segurança</option>
-            <option value="Outros">Outros</option>
-        </select>
-
-        <label>Descrição:</label>
-        <textarea id="descricao" rows="3"></textarea>
-
-        <div id="divStatusNormal">
-            <label>Status:</label>
-            <select id="statusNormal" onchange="sincronizarStatus(this.value)">
-                <option value="Pendente">Pendente</option>
-                <option value="Resolvido">Resolvido</option>
-            </select>
-        </div>
-
-        <button type="button" class="btn-submit" id="btnSalvar" onclick="enviar()">SALVAR NOVA DEMANDA</button>
-        <button type="button" class="btn-cancel" id="btnCancel" onclick="limparForm()">Cancelar Edição</button>
-        <div id="status-msg"></div>
-    </form>
 </div>
 
 <script>
     const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzVRhKIE_cHfmUL3Niy3cqZNM4_c-QX-AmsHww5grOShDNJqf3tMwlcwECCcE-Mmgynvg/exec';
-    let timeoutBusca = null;
-    let valorStatusGlobal = "Pendente";
+    let tempoBusca = null;
+    let statusGlobal = "Pendente";
 
-    function sincronizarStatus(val) {
-        valorStatusGlobal = val;
-        document.getElementById('statusTopo').value = val;
-        document.getElementById('statusNormal').value = val;
+    function sincronizarStatus(v) {
+        statusGlobal = v;
+        document.getElementById('statusTopo').value = v;
+        document.getElementById('statusNormal').value = v;
     }
 
+    // Alternância de Telas
+    function mostrarBusca() {
+        document.getElementById('tela-formulario').style.display = 'none';
+        document.getElementById('tela-busca').style.display = 'block';
+        document.getElementById('inputBusca').focus();
+    }
+
+    function mostrarForm() {
+        document.getElementById('tela-busca').style.display = 'none';
+        document.getElementById('tela-formulario').style.display = 'block';
+    }
+
+    // Lógica de Autocomplete (Debounce)
     function debounceBusca() {
-        clearTimeout(timeoutBusca);
-        const termo = document.getElementById('busca').value;
-        if (termo.length < 3) {
-            fecharBusca();
+        clearTimeout(tempoBusca);
+        const t = document.getElementById('inputBusca').value;
+        if (t.length < 3) {
+            document.getElementById('listaResultados').innerHTML = "";
             return;
         }
-        document.getElementById('loading-indicator').style.display = "block";
-        timeoutBusca = setTimeout(executarBusca, 600);
+        document.getElementById('loading').style.display = "block";
+        tempoBusca = setTimeout(chamarGoogle, 600);
     }
 
-    function executarBusca() {
-        const termo = document.getElementById('busca').value;
+    function chamarGoogle() {
+        const t = document.getElementById('inputBusca').value;
         const script = document.createElement('script');
-        script.src = `${WEBAPP_URL}?busca=${encodeURIComponent(termo)}&callback=retornoPesquisa`;
+        script.src = `${WEBAPP_URL}?busca=${encodeURIComponent(t)}&callback=renderizarResultados`;
         document.body.appendChild(script);
         script.onload = () => {
             script.remove();
-            document.getElementById('loading-indicator').style.display = "none";
+            document.getElementById('loading').style.display = "none";
         };
     }
 
-    function retornoPesquisa(resultados) {
-        const overlay = document.getElementById('search-overlay');
-        overlay.innerHTML = "";
-        
-        if (resultados.length > 0) {
-            overlay.style.display = "block";
-            document.getElementById('formDemanda').style.opacity = "0.2"; // Esconde o fundo
-            
-            resultados.forEach(res => {
-                const item = document.createElement('div');
-                item.className = 'item-busca';
-                item.innerHTML = `<strong>${res.nome}</strong><span>${res.assunto} - ${res.data} (${res.status})</span>`;
-                item.onclick = () => carregarDemanda(res);
-                overlay.appendChild(item);
-            });
+    function renderizarResultados(dados) {
+        const lista = document.getElementById('listaResultados');
+        lista.innerHTML = "";
+        if (dados.length === 0) {
+            lista.innerHTML = "<p style='text-align:center'>Nenhuma demanda encontrada.</p>";
+            return;
         }
+        dados.forEach(d => {
+            const div = document.createElement('div');
+            div.className = 'card-resultado';
+            div.innerHTML = `<strong>${d.nome}</strong><small>${d.assunto} - ${d.data} [${d.status}]</small>`;
+            div.onclick = () => preencherParaEdicao(d);
+            lista.appendChild(div);
+        });
     }
 
-    function fecharBusca() {
-        document.getElementById('search-overlay').style.display = "none";
-        document.getElementById('formDemanda').style.opacity = "1";
-        document.getElementById('loading-indicator').style.display = "none";
+    function preencherParaEdicao(d) {
+        document.getElementById('linhaId').value = d.linha;
+        document.getElementById('nome').value = d.nome;
+        document.getElementById('telefone').value = d.telefone;
+        document.getElementById('assunto').value = d.assunto;
+        document.getElementById('descricao').value = d.descricao;
+        sincronizarStatus(d.status);
+
+        // Ajuste visual
+        document.getElementById('titulo-form').innerText = "Editando Demanda";
+        document.getElementById('bloco-status-topo').style.display = "block";
+        document.getElementById('bloco-status-normal').style.display = "none";
+        document.getElementById('btnAcao').innerText = "ATUALIZAR DEMANDA";
+        document.getElementById('btnAcao').style.background = "#ffc107";
+        document.getElementById('btnAcao').style.color = "#000";
+
+        mostrarForm();
+        document.getElementById('inputBusca').value = "";
+        document.getElementById('listaResultados').innerHTML = "";
     }
 
-    function carregarDemanda(res) {
-        document.getElementById('linhaId').value = res.linha;
-        document.getElementById('nome').value = res.nome;
-        document.getElementById('telefone').value = res.telefone;
-        document.getElementById('assunto').value = res.assunto;
-        document.getElementById('descricao').value = res.descricao;
-        sincronizarStatus(res.status);
-        
-        // Ajuste visual para MODO EDIÇÃO
-        document.getElementById('divStatusTopo').style.display = "block";
-        document.getElementById('divStatusNormal').style.display = "none";
-        document.getElementById('btnCancel').style.display = "block";
-        document.getElementById('btnSalvar').innerText = "ATUALIZAR DEMANDA";
-        document.getElementById('btnSalvar').style.background = "#ffc107";
-        document.getElementById('btnSalvar').style.color = "#000";
-
-        fecharBusca();
-        document.getElementById('busca').value = "";
-    }
-
-    function limparForm() {
-        document.getElementById('formDemanda').reset();
+    function resetarTudo() {
+        document.getElementById('meuForm').reset();
         document.getElementById('linhaId').value = "";
-        document.getElementById('divStatusTopo').style.display = "none";
-        document.getElementById('divStatusNormal').style.display = "block";
-        document.getElementById('btnCancel').style.display = "none";
-        document.getElementById('btnSalvar').innerText = "SALVAR NOVA DEMANDA";
-        document.getElementById('btnSalvar').style.background = "#28a745";
-        document.getElementById('btnSalvar').style.color = "#fff";
-        document.getElementById('status-msg').innerText = "";
+        document.getElementById('titulo-form').innerText = "Nova Demanda";
+        document.getElementById('bloco-status-topo').style.display = "none";
+        document.getElementById('bloco-status-normal').style.display = "block";
+        document.getElementById('btnAcao').innerText = "SALVAR REGISTRO";
+        document.getElementById('btnAcao').style.background = "#28a745";
+        document.getElementById('btnAcao').style.color = "#fff";
         sincronizarStatus("Pendente");
     }
 
     async function enviar() {
-        const btn = document.getElementById('btnSalvar');
-        const msg = document.getElementById('status-msg');
+        const btn = document.getElementById('btnAcao');
+        const msg = document.getElementById('msg-final');
         btn.disabled = true;
-        msg.innerText = "Gravando...";
+        msg.innerText = "Processando...";
 
         const params = new URLSearchParams();
         params.append('linhaId', document.getElementById('linhaId').value);
@@ -187,17 +206,16 @@
         params.append('telefone', document.getElementById('telefone').value);
         params.append('assunto', document.getElementById('assunto').value);
         params.append('descricao', document.getElementById('descricao').value);
-        params.append('status', valorStatusGlobal);
+        params.append('status', statusGlobal);
 
         try {
             await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
             msg.style.color = "green";
-            msg.innerText = "✅ Operação realizada com sucesso!";
-            setTimeout(limparForm, 2000);
+            msg.innerText = "✅ Salvo com sucesso!";
+            setTimeout(() => { msg.innerText = ""; resetarTudo(); }, 2500);
         } catch (e) {
             msg.style.color = "red";
             msg.innerText = "❌ Erro ao salvar.";
-        } finally {
             btn.disabled = false;
         }
     }
