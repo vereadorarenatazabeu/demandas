@@ -12,16 +12,13 @@
         #tela-busca { display: none; text-align: center; }
         #inputBusca { width: 100%; padding: 15px; border: 2px solid #1a73e8; border-radius: 10px; font-size: 18px; box-sizing: border-box; outline: none; }
         #loading { color: #1a73e8; font-weight: bold; margin: 10px 0; display: none; }
-        .resultados-lista { margin-top: 20px; text-align: left; max-height: 300px; overflow-y: auto; }
+        .resultados-lista { margin-top: 20px; text-align: left; max-height: 350px; overflow-y: auto; }
         .card-resultado { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; }
         #tela-formulario { display: block; }
         .status-destaque { display: none; background: #fff3cd; padding: 15px; border-radius: 10px; border: 2px solid #ffeeba; margin-bottom: 20px; }
         label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #555; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        
-        /* Campo extra para Outros */
-        #div-outro-assunto { display: none; margin-top: 10px; background: #f9f9f9; padding: 10px; border-left: 4px solid #1a73e8; border-radius: 4px; }
-
+        #div-outro-assunto { display: none; margin-top: 10px; background: #f9f9f9; padding: 10px; border-left: 4px solid #1a73e8; }
         .btn-enviar { background: #28a745; color: white; border: none; width: 100%; padding: 18px; margin-top: 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-voltar { background: #6c757d; color: white; border: none; padding: 15px; margin-top: 20px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; }
         #msg-final { text-align: center; margin-top: 15px; font-weight: bold; }
@@ -42,10 +39,15 @@
                     <option value="Resolvido">🟢 Resolvido</option>
                 </select>
             </div>
+            
             <label>Nome do Cidadão:</label>
             <input type="text" id="nome">
+            
             <label>Telefone:</label>
             <input type="text" id="telefone">
+
+            <label>Indicado por:</label>
+            <input type="text" id="indicado" placeholder="Quem indicou?">
             
             <label>Assunto:</label>
             <select id="assunto" onchange="verificarOutros(this.value)">
@@ -56,11 +58,12 @@
 
             <div id="div-outro-assunto">
                 <label>Especifique o Assunto:</label>
-                <input type="text" id="assuntoExtra" placeholder="Ex: Zeladoria, IPTU, etc.">
+                <input type="text" id="assuntoExtra">
             </div>
 
             <label>Descrição:</label>
             <textarea id="descricao" rows="4"></textarea>
+
             <div id="bloco-status-normal">
                 <label>Status:</label>
                 <select id="statusNormal" onchange="sincronizarStatus(this.value)">
@@ -68,15 +71,16 @@
                     <option value="Resolvido">Resolvido</option>
                 </select>
             </div>
+
             <button type="button" class="btn-enviar" id="btnAcao" onclick="enviar()">SALVAR REGISTRO</button>
             <div id="msg-final"></div>
         </form>
     </div>
 
     <div id="tela-busca">
-        <h2>Localizar no Histórico</h2>
+        <h2>Histórico Recente</h2>
         <div class="search-input-wrapper">
-            <input type="text" id="inputBusca" placeholder="Pesquisar..." oninput="debounceBusca()">
+            <input type="text" id="inputBusca" placeholder="Pesquisar Nome/Tel..." oninput="debounceBusca()">
             <div id="loading">Consultando planilha...</div>
         </div>
         <div id="listaResultados" class="resultados-lista"></div>
@@ -98,13 +102,13 @@
     function verificarOutros(val) {
         const div = document.getElementById('div-outro-assunto');
         div.style.display = (val === "Outros") ? "block" : "none";
-        if (val !== "Outros") document.getElementById('assuntoExtra').value = "";
     }
 
     function mostrarBusca() {
         document.getElementById('tela-formulario').style.display = 'none';
         document.getElementById('tela-busca').style.display = 'block';
         document.getElementById('inputBusca').focus();
+        chamarGoogle(""); // Busca os 5 mais recentes
     }
 
     function mostrarForm() {
@@ -115,13 +119,11 @@
     function debounceBusca() {
         clearTimeout(tempoBusca);
         const t = document.getElementById('inputBusca').value;
-        if (t.length < 3) { document.getElementById('listaResultados').innerHTML = ""; return; }
         document.getElementById('loading').style.display = "block";
-        tempoBusca = setTimeout(chamarGoogle, 600);
+        tempoBusca = setTimeout(() => chamarGoogle(t), 600);
     }
 
-    function chamarGoogle() {
-        const t = document.getElementById('inputBusca').value;
+    function chamarGoogle(t) {
         const script = document.createElement('script');
         script.src = `${WEBAPP_URL}?busca=${encodeURIComponent(t)}&callback=renderizarResultados`;
         document.body.appendChild(script);
@@ -131,11 +133,11 @@
     function renderizarResultados(dados) {
         const lista = document.getElementById('listaResultados');
         lista.innerHTML = "";
-        if (dados.length === 0) { lista.innerHTML = "<p>Nenhuma demanda encontrada.</p>"; return; }
+        if (dados.length === 0) { lista.innerHTML = "<p>Nenhum registro.</p>"; return; }
         dados.forEach(d => {
             const div = document.createElement('div');
             div.className = 'card-resultado';
-            div.innerHTML = `<strong>${d.nome}</strong><small>${d.assunto} - ${d.data} [${d.status}]</small>`;
+            div.innerHTML = `<strong>${d.nome}</strong><small>${d.assunto} (${d.data}) - [${d.status}]</small>`;
             div.onclick = () => preencherParaEdicao(d);
             lista.appendChild(div);
         });
@@ -145,11 +147,11 @@
         document.getElementById('linhaId').value = d.linha;
         document.getElementById('nome').value = d.nome;
         document.getElementById('telefone').value = d.telefone;
+        document.getElementById('indicado').value = d.indicado;
         document.getElementById('descricao').value = d.descricao;
         sincronizarStatus(d.status);
 
-        const listaFixa = ["Saúde", "Educação"];
-        if (listaFixa.includes(d.assunto)) {
+        if (["Saúde", "Educação"].includes(d.assunto)) {
             document.getElementById('assunto').value = d.assunto;
             verificarOutros(d.assunto);
         } else {
@@ -183,45 +185,26 @@
     async function enviar() {
         const btn = document.getElementById('btnAcao');
         const msg = document.getElementById('msg-final');
-        const textoOriginal = btn.innerText;
-
-        // Feedback Visual
         btn.disabled = true;
         btn.innerText = "⏳ GRAVANDO...";
-        msg.style.color = "#1a73e8";
-        msg.innerText = "Enviando dados para a planilha...";
 
         const params = new URLSearchParams();
         params.append('linhaId', document.getElementById('linhaId').value);
         params.append('nome', document.getElementById('nome').value);
         params.append('telefone', document.getElementById('telefone').value);
+        params.append('indicado', document.getElementById('indicado').value);
         params.append('assunto', document.getElementById('assunto').value);
         params.append('assuntoExtra', document.getElementById('assuntoExtra').value);
         params.append('descricao', document.getElementById('descricao').value);
         params.append('status', statusGlobal);
 
         try {
-            // Usa o modo 'no-cors' para evitar erros de bloqueio de segurança do navegador
-            await fetch(WEBAPP_URL, { 
-                method: 'POST', 
-                body: params, 
-                mode: 'no-cors' 
-            });
-            
-            msg.style.color = "green";
-            msg.innerText = "✅ Atualizado com sucesso!";
-            
-            // Aguarda 2 segundos para o usuário ler a mensagem e reseta
-            setTimeout(() => { 
-                msg.innerText = ""; 
-                resetarTudo(); 
-            }, 2000);
-
+            await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
+            msg.style.color = "green"; msg.innerText = "✅ Sucesso!";
+            setTimeout(() => { msg.innerText = ""; resetarTudo(); }, 2000);
         } catch (e) {
-            msg.style.color = "red";
-            msg.innerText = "❌ Erro na conexão. Tente novamente.";
-            btn.disabled = false;
-            btn.innerText = textoOriginal;
+            msg.style.color = "red"; msg.innerText = "❌ Erro ao salvar.";
+            btn.disabled = false; btn.innerText = "TENTAR NOVAMENTE";
         }
     }
 </script>
