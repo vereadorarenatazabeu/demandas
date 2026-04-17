@@ -26,7 +26,6 @@
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         #div-outro-assunto { display: none; margin-top: 10px; background: #f9f9f9; padding: 10px; border-left: 4px solid #1a73e8; }
 
-        /* Botão Simplificado */
         .btn-enviar { background: #28a745; color: white; border: none; width: 100%; padding: 18px; margin-top: 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-enviar:disabled { background: #6c757d; cursor: not-allowed; }
         .btn-sucesso { background: #155724 !important; }
@@ -49,24 +48,31 @@
                     <option value="Resolvido">🟢 Resolvido</option>
                 </select>
             </div>
+            
             <label>Nome do Cidadão:</label>
-            <input type="text" id="nome">
+            <input type="text" id="nome" placeholder="Nome completo do munícipe">
+            
             <label>Telefone:</label>
-            <input type="text" id="telefone">
-            <label>Indicação:</label>
-            <input type="text" id="indicado">
+            <input type="text" id="telefone" placeholder="(00) 00000-0000">
+            
+            <label>Indicado por:</label>
+            <input type="text" id="indicado" placeholder="Quem trouxe a demanda para o gabinete?">
+            
             <label>Assunto:</label>
             <select id="assunto" onchange="verificarOutros(this.value)">
                 <option value="Saúde">Saúde</option>
                 <option value="Educação">Educação</option>
                 <option value="Outros">Outros...</option>
             </select>
+
             <div id="div-outro-assunto">
                 <label>Especifique o Assunto:</label>
-                <input type="text" id="assuntoExtra">
+                <input type="text" id="assuntoExtra" placeholder="Ex: Zeladoria, IPTU, etc.">
             </div>
+
             <label>Descrição:</label>
-            <textarea id="descricao" rows="4"></textarea>
+            <textarea id="descricao" rows="4" placeholder="Descreva aqui o que o cidadão precisa..."></textarea>
+            
             <div id="bloco-status-normal">
                 <label>Status:</label>
                 <select id="statusNormal" onchange="sincronizarStatus(this.value)">
@@ -136,7 +142,7 @@
             document.getElementById('loading').style.display = "none";
             const input = document.getElementById('inputBusca');
             input.disabled = false;
-            input.placeholder = "Pesquisar...";
+            input.placeholder = "Pesquisar Nome ou Tel...";
             if(t === "") input.focus();
         };
     }
@@ -174,7 +180,7 @@
         document.getElementById('titulo-form').innerText = "Editando Registro";
         document.getElementById('bloco-status-topo').style.display = "block";
         document.getElementById('bloco-status-normal').style.display = "none";
-        document.getElementById('btnAcao').innerText = "SALVAR"; // Mantém simples
+        document.getElementById('btnAcao').innerText = "SALVAR";
         document.getElementById('btnAcao').style.background = "#ffc107";
         document.getElementById('btnAcao').style.color = "#000";
         mostrarForm();
@@ -213,11 +219,8 @@
 
         try {
             await fetch(WEBAPP_URL, { method: 'POST', body: params, mode: 'no-cors' });
-            
-            // FEEDBACK DE SUCESSO NO PRÓPRIO BOTÃO
             btn.innerText = "SALVO COM SUCESSO!";
             btn.classList.add('btn-sucesso');
-            
             setTimeout(resetarTudo, 2000);
         } catch (e) {
             btn.innerText = "ERRO! TENTE NOVAMENTE";
